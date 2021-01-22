@@ -2,10 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:MuqitTasker/Models/GeneralResponse.dart';
+import 'package:MuqitTasker/Models/TaskerLoginResponse.dart';
 import 'package:MuqitTasker/Screens/TaskerScreens/TEditProfile.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:progress_dialog/progress_dialog.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:toast/toast.dart';
 import 'package:http/http.dart' as http;
 
@@ -39,6 +41,39 @@ class _TSettingState extends State<TSetting> {
     return generalResposneFromJson(response.body);
   }
 
+  Future<TaskerLoginModel> TaskerLogin(String email, String password) async {
+    String uri = 'https://www.muqit.com/app/tasker_login.php';
+    http.Response response =
+        await http.post(uri, body: {"email": email, "password": password});
+
+    final String responseString = response.body;
+    return taskerLoginModelFromJson(responseString);
+  }
+
+  bool isimageFound = false;
+  String imageName;
+  loadImage() async {
+    SharedPreferences preferences = await SharedPreferences.getInstance();
+    TaskerLoginModel taskerLoginModel = await TaskerLogin(
+        preferences.getString('email'), preferences.getString('password'));
+
+    if (taskerLoginModel.profile == '') {
+      setState(() {
+        isimageFound = false;
+      });
+    } else {
+      imageName = taskerLoginModel.profile;
+      setState(() {
+        isimageFound = true;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    loadImage();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -68,13 +103,23 @@ class _TSettingState extends State<TSetting> {
                     Column(
                       children: [
                         CircleAvatar(
-                          radius: 30,
+                          radius: 34,
                           backgroundColor: Colors.grey[300],
-                          child: Icon(
-                            Icons.person,
-                            size: 40,
-                            color: Colors.black,
-                          ),
+                          child: isimageFound
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(34.0),
+                                  child: Image.network(
+                                      "https://www.muqit.com/app/upload/" +
+                                          imageName,
+                                      fit: BoxFit.fill,
+                                      width: 65,
+                                      height: 65),
+                                )
+                              : Icon(
+                                  Icons.person,
+                                  size: 40,
+                                  color: Colors.black,
+                                ),
                         ),
                       ],
                     ),
@@ -196,6 +241,7 @@ class _TSettingState extends State<TSetting> {
                                 widget.taskerID);
                             if (generalResposne.status) {
                               progressDialog.hide();
+                              loadImage();
                               Toast.show(generalResposne.message, context,
                                   gravity: Toast.CENTER,
                                   duration: Toast.LENGTH_LONG);

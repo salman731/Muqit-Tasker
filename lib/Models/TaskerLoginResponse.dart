@@ -17,6 +17,7 @@ class TaskerLoginModel {
     this.id,
     this.email,
     this.name,
+    this.profile,
   });
 
   String message;
@@ -24,6 +25,7 @@ class TaskerLoginModel {
   String id;
   String email;
   String name;
+  String profile;
 
   factory TaskerLoginModel.fromJson(Map<String, dynamic> json) =>
       TaskerLoginModel(
@@ -32,6 +34,7 @@ class TaskerLoginModel {
         id: json["id"],
         email: json["email"],
         name: json["name"],
+        profile: json["profile"],
       );
 
   Map<String, dynamic> toJson() => {
@@ -40,5 +43,6 @@ class TaskerLoginModel {
         "id": id,
         "email": email,
         "name": name,
+        "profile": profile,
       };
 }

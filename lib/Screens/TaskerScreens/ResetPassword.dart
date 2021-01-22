@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:MuqitTasker/Models/GeneralResponse.dart';
 import 'package:MuqitTasker/Models/ClientLoginResponse.dart';
 import 'package:MuqitTasker/Models/TaskerLoginResponse.dart';
+import 'package:MuqitTasker/Screens/TaskerScreens/PasswordRestore.dart';
 import 'package:MuqitTasker/Screens/TaskerScreens/TaskerMainScreen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -14,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_toggle_tab/flutter_toggle_tab.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:progress_dialog/progress_dialog.dart';
+import 'package:random_string/random_string.dart';
 import 'package:toast/toast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -37,6 +39,15 @@ class _ResetPassword extends State<ResetPasswordScreen> {
   StreamController<ErrorAnimationType> errorController;
   TextEditingController pintextEditingController = new TextEditingController();
   bool isCodesent = false;
+  String emailValue;
+
+  Future<GeneralResposne> sendCode(String email, String code) async {
+    String url = "https://muqit.com/app/tsendcode.php";
+    http.Response response =
+        await http.post(url, body: {'email': email, 'code': code});
+    return generalResposneFromJson(response.body);
+  }
+
   @override
   void initState() {}
 
@@ -65,7 +76,12 @@ class _ResetPassword extends State<ResetPasswordScreen> {
               errorAnimationController: errorController,
               controller: pintextEditingController,
               onCompleted: (v) {
-                print("Completed");
+                if (v == rndcode) {
+                  Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => Passwordrestore(emailValue)));
+                }
               },
               onChanged: (value) {
                 print(value);
@@ -89,7 +105,11 @@ class _ResetPassword extends State<ResetPasswordScreen> {
       children: [
         Text("Didn't receive the Code? "),
         InkWell(
-            onTap: () {},
+            onTap: () async {
+              rndcode = randomNumeric(6);
+              GeneralResposne generalResposne =
+                  await sendCode(emailValue, rndcode);
+            },
             child: Text("Resend",
                 style: TextStyle(
                     color: Colors.green, fontWeight: FontWeight.bold)))
@@ -97,6 +117,7 @@ class _ResetPassword extends State<ResetPasswordScreen> {
     );
   }
 
+  String rndcode;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -160,69 +181,85 @@ class _ResetPassword extends State<ResetPasswordScreen> {
                 SizedBox(
                   height: 20,
                 ),
-                MaterialButton(
-                  elevation: 10,
-                  child: Padding(
-                    padding: const EdgeInsets.all(10.0),
-                    child: isCodesent
-                        ? Text("Confirm",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ))
-                        : Text("Send",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            )),
-                  ),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18)),
-                  minWidth: 250,
-                  color: Colors.green,
-                  splashColor: Colors.lightGreen,
-                  onPressed: () async {
-                    try {
-                      progressDialog = new ProgressDialog(context);
-                      progressDialog.style(
-                          message: 'Logging In....',
-                          borderRadius: 10.0,
-                          backgroundColor: Colors.white,
-                          progressWidget: CircularProgressIndicator(),
-                          elevation: 10.0,
-                          insetAnimCurve: Curves.easeInOut,
-                          progress: 0.0,
-                          maxProgress: 100.0,
-                          progressTextStyle: TextStyle(
-                              color: Colors.black,
-                              fontSize: 10.0,
-                              fontWeight: FontWeight.w400),
-                          messageTextStyle: TextStyle(
-                              color: Colors.black,
-                              fontSize: 15.0,
-                              fontWeight: FontWeight.w600));
+                Container(
+                  child: isCodesent
+                      ? Container()
+                      : MaterialButton(
+                          elevation: 10,
+                          child: Padding(
+                            padding: const EdgeInsets.all(10.0),
+                            child: Text("Send",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                )),
+                          ),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18)),
+                          minWidth: 250,
+                          color: Colors.green,
+                          splashColor: Colors.lightGreen,
+                          onPressed: () async {
+                            try {
+                              progressDialog = new ProgressDialog(context);
+                              progressDialog.style(
+                                  message: 'Sending....',
+                                  borderRadius: 10.0,
+                                  backgroundColor: Colors.white,
+                                  progressWidget: CircularProgressIndicator(),
+                                  elevation: 10.0,
+                                  insetAnimCurve: Curves.easeInOut,
+                                  progress: 0.0,
+                                  maxProgress: 100.0,
+                                  progressTextStyle: TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 10.0,
+                                      fontWeight: FontWeight.w400),
+                                  messageTextStyle: TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 15.0,
+                                      fontWeight: FontWeight.w600));
 
-                      if (emailController.text.isNotEmpty) {
-                        if (RegExp(
-                                r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
-                            .hasMatch(emailController.text)) {
-                          setState(() {
-                            isCodesent = true;
-                          });
-                        } else {
-                          Toast.show("Enter Valid Email Address.....", context,
-                              duration: Toast.LENGTH_SHORT,
-                              gravity: Toast.BOTTOM);
-                        }
-                      } else {
-                        Toast.show("Enter Email.....", context,
-                            duration: Toast.LENGTH_SHORT,
-                            gravity: Toast.BOTTOM);
-                      }
-                    } catch (e) {
-                      print(e);
-                    }
-                  },
+                              if (emailController.text.isNotEmpty) {
+                                if (RegExp(
+                                        r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
+                                    .hasMatch(emailController.text)) {
+                                  await progressDialog.show();
+                                  rndcode = randomNumeric(6);
+                                  GeneralResposne generalResposne =
+                                      await sendCode(
+                                          emailController.text, rndcode);
+                                  if (generalResposne.message !=
+                                      'Email not found') {
+                                    emailValue = emailController.text;
+                                    setState(() {
+                                      isCodesent = true;
+                                    });
+                                    Toast.show(generalResposne.message, context,
+                                        gravity: Toast.CENTER,
+                                        duration: Toast.LENGTH_LONG);
+                                  } else {
+                                    Toast.show(generalResposne.message, context,
+                                        gravity: Toast.CENTER,
+                                        duration: Toast.LENGTH_LONG);
+                                  }
+                                  await progressDialog.hide();
+                                } else {
+                                  Toast.show(
+                                      "Enter Valid Email Address.....", context,
+                                      duration: Toast.LENGTH_SHORT,
+                                      gravity: Toast.BOTTOM);
+                                }
+                              } else {
+                                Toast.show("Enter Email.....", context,
+                                    duration: Toast.LENGTH_SHORT,
+                                    gravity: Toast.BOTTOM);
+                              }
+                            } catch (e) {
+                              print(e);
+                            }
+                          },
+                        ),
                 ),
                 SizedBox(
                   height: 15,
